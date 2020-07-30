@@ -488,6 +488,19 @@ impl Crypter {
         }
     }
 
+    pub fn set_iv(&mut self, iv: &[u8]) {
+        unsafe {
+            ffi::EVP_CipherInit_ex(
+                self.ctx,
+                ptr::null(),
+                ptr::null_mut(),
+                ptr::null(),
+                iv.as_ptr() as *mut _,
+                -1,
+            );
+        }
+    }
+
     /// Enables or disables padding.
     ///
     /// If padding is disabled, total amount of data encrypted/decrypted must
