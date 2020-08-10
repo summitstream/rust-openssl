@@ -623,6 +623,46 @@ impl Crypter {
         }
     }
 
+    /// Feeds data from `input_output` through the cipher, writing encrypted/decrypted
+    /// bytes into `input_output`.
+    ///
+    ///
+    /// # Panics
+    ///
+    /// Panics for stream ciphers if `output.len() < input.len()`.
+    ///
+    /// Panics for block ciphers if `output.len() < input.len() + block_size`,
+    /// where `block_size` is the block size of the cipher (see `Cipher::block_size`).
+    ///
+    /// Panics if `output.len() > c_int::max_value()`.
+    pub fn update_in_place(
+        &mut self,
+        input_output: &mut [u8],
+        input_size: usize,
+    ) -> Result<usize, ErrorStack> {
+        unsafe {
+            let block_size = if self.block_size > 1 {
+                self.block_size
+            } else {
+                0
+            };
+            assert!(input_output.len() >= input_size + block_size);
+            assert!(input_output.len() <= c_int::max_value() as usize);
+            let mut outl = input_output.len() as c_int;
+            let inl = input_size as c_int;
+
+            cvt(ffi::EVP_CipherUpdate(
+                self.ctx,
+                input_output.as_mut_ptr(),
+                &mut outl,
+                input_output.as_ptr(),
+                inl,
+            ))?;
+
+            Ok(outl as usize)
+        }
+    }
+
     /// Finishes the encryption/decryption process, writing any remaining data
     /// to `output`.
     ///
